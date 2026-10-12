@@ -139,6 +139,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="25i-0686_F_A2_P1\src\queueType.h" />
     <ClInclude Include="25i-0686_F_A2_P1\src\stackType.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

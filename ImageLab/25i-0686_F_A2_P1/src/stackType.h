@@ -1,4 +1,3 @@
-#pragma once
 #ifndef STACKTYPE_H
 #define STACKTYPE_H
 

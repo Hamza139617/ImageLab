@@ -18,5 +18,8 @@
     <ClInclude Include="25i-0686_F_A2_P1\src\stackType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="25i-0686_F_A2_P1\src\queueType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
