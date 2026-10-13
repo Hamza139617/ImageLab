@@ -11,7 +11,9 @@ enum class JobType {
     BucketFillStack,
     BucketFillQueue,
     SaveProject,
-    Export
+    Export,
+    Undo,
+    Redo
 };
 
 struct ProcessingJob {
@@ -39,6 +41,8 @@ inline const char* jobTypeName(JobType type) {
     case JobType::BucketFillQueue: return "Bucket Fill (Queue)";
     case JobType::SaveProject: return "Save Project";
     case JobType::Export: return "Export";
+    case JobType::Undo: return "Undo";
+    case JobType::Redo: return "Redo";
     default: return "Unknown";
     }
 }
@@ -70,6 +74,10 @@ private:
             return image.save(projectFileName);
         case JobType::Export:
             return image.save(job.fileName);
+        case JobType::Undo:
+            return performUndo();
+        case JobType::Redo:
+            return performRedo();
         default:
             return false;
         }
@@ -78,6 +86,28 @@ private:
     bool isImageChanging(JobType type) const {
         return type == JobType::Resize || type == JobType::Blur ||
                type == JobType::BucketFillStack || type == JobType::BucketFillQueue;
+    }
+
+    bool performUndo() {
+        if (undoStack.isEmptyStack()) {
+            std::cout << "Nothing to undo.\\n";
+            return false;
+        }
+        redoStack.push(image);
+        image = undoStack.top();
+        undoStack.pop();
+        return true;
+    }
+
+    bool performRedo() {
+        if (redoStack.isEmptyStack()) {
+            std::cout << "Nothing to redo.\\n";
+            return false;
+        }
+        undoStack.push(image);
+        image = redoStack.top();
+        redoStack.pop();
+        return true;
     }
 
 public:
@@ -174,25 +204,21 @@ public:
     }
 
     bool undo() {
-        if (undoStack.isEmptyStack()) {
-            std::cout << "Nothing to undo.\n";
-            return false;
+        if (!jobs.isEmptyQueue()) {
+            ProcessingJob job;
+            job.type = JobType::Undo;
+            return enqueue(job);
         }
-        redoStack.push(image);
-        image = undoStack.top();
-        undoStack.pop();
-        return true;
+        return performUndo();
     }
 
     bool redo() {
-        if (redoStack.isEmptyStack()) {
-            std::cout << "Nothing to redo.\n";
-            return false;
+        if (!jobs.isEmptyQueue()) {
+            ProcessingJob job;
+            job.type = JobType::Redo;
+            return enqueue(job);
         }
-        undoStack.push(image);
-        image = redoStack.top();
-        redoStack.pop();
-        return true;
+        return performRedo();
     }
 
     bool submitResize(int width, int height) {
@@ -237,7 +263,7 @@ public:
     }
 
     bool enqueue(ProcessingJob job) {
-        if (!hasImage() && job.type != JobType::SaveProject && job.type != JobType::Export) {
+        if (!hasImage()) {
             std::cout << "Load an image before submitting image operations.\n";
             return false;
         }
