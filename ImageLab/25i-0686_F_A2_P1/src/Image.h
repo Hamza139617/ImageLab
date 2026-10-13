@@ -263,7 +263,7 @@ public:
         Gdiplus::BitmapData bitmapData{};
         const Gdiplus::Status lockStatus = bitmap.LockBits(
             &rect, Gdiplus::ImageLockModeRead,
-            PixelFormat32bppARGB, &bitmapData);
+            Gdiplus::PixelFormat32bppARGB, &bitmapData);
 
         if (lockStatus != Gdiplus::Ok) {
             delete[] newPixels;
@@ -333,7 +333,7 @@ public:
             return false;
         }
 
-        Gdiplus::Bitmap output(imageWidth, imageHeight, PixelFormat32bppARGB);
+        Gdiplus::Bitmap output(imageWidth, imageHeight, Gdiplus::PixelFormat32bppARGB);
         if (output.GetLastStatus() != Gdiplus::Ok) {
             std::cerr << "Could not create the output image.\n";
             return false;
@@ -342,7 +342,7 @@ public:
         Gdiplus::Rect rect(0, 0, imageWidth, imageHeight);
         Gdiplus::BitmapData bitmapData{};
         if (output.LockBits(&rect, Gdiplus::ImageLockModeWrite,
-                            PixelFormat32bppARGB, &bitmapData) != Gdiplus::Ok) {
+                            Gdiplus::PixelFormat32bppARGB, &bitmapData) != Gdiplus::Ok) {
             std::cerr << "Could not prepare the output pixels.\n";
             return false;
         }
