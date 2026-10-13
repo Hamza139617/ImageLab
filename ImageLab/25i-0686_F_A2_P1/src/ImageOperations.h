@@ -11,7 +11,7 @@
 
 namespace ImageOperations {
 
-inline unsigned char clampChannel(int value) {
+inline unsigned char clampChannel(long long value) {
     if (value < 0) return 0;
     if (value > 255) return 255;
     return static_cast<unsigned char>(value);
@@ -108,9 +108,9 @@ inline bool brightness(Image& image, int adjustment) {
     const int total = image.pixelCount();
     for (int i = 0; i < total; ++i) {
         Pixel& p = image.data()[i];
-        p.r = clampChannel(static_cast<int>(p.r) + adjustment);
-        p.g = clampChannel(static_cast<int>(p.g) + adjustment);
-        p.b = clampChannel(static_cast<int>(p.b) + adjustment);
+        p.r = clampChannel(static_cast<long long>(p.r) + adjustment);
+        p.g = clampChannel(static_cast<long long>(p.g) + adjustment);
+        p.b = clampChannel(static_cast<long long>(p.b) + adjustment);
     }
     return true;
 }
