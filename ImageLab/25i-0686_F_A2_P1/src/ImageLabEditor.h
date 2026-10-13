@@ -47,11 +47,23 @@ inline const char* jobTypeName(JobType type) {
     }
 }
 
+struct HistoryRecord {
+    Image snapshot;
+    std::string operationName;
+
+    HistoryRecord() : snapshot(), operationName() {
+    }
+
+    HistoryRecord(const Image& previousImage, const std::string& name)
+        : snapshot(previousImage), operationName(name) {
+    }
+};
+
 class ImageLabEditor {
 private:
     Image image;
-    stackType<Image> undoStack;
-    stackType<Image> redoStack;
+    stackType<HistoryRecord> undoStack;
+    stackType<HistoryRecord> redoStack;
     queueType<ProcessingJob> jobs;
     int nextJobId;
     std::string projectFileName;
@@ -93,8 +105,9 @@ private:
             std::cout << "Nothing to undo.\\n";
             return false;
         }
-        redoStack.push(image);
-        image = undoStack.top();
+        HistoryRecord record = undoStack.top();
+        redoStack.push(HistoryRecord(image, record.operationName));
+        image = record.snapshot;
         undoStack.pop();
         return true;
     }
@@ -104,8 +117,9 @@ private:
             std::cout << "Nothing to redo.\\n";
             return false;
         }
-        undoStack.push(image);
-        image = redoStack.top();
+        HistoryRecord record = redoStack.top();
+        undoStack.push(HistoryRecord(image, record.operationName));
+        image = record.snapshot;
         redoStack.pop();
         return true;
     }
@@ -146,7 +160,7 @@ public:
         Image before = image;
         if (!ImageOperations::crop(image, x, y, width, height))
             return false;
-        undoStack.push(before);
+        undoStack.push(HistoryRecord(before, "Crop"));
         clearRedo();
         return true;
     }
@@ -159,7 +173,7 @@ public:
         Image before = image;
         if (!ImageOperations::rotate(image, degrees))
             return false;
-        undoStack.push(before);
+        undoStack.push(HistoryRecord(before, "Rotate " + std::to_string(degrees)));
         clearRedo();
         return true;
     }
@@ -172,7 +186,7 @@ public:
         Image before = image;
         if (!ImageOperations::flip(image, horizontal))
             return false;
-        undoStack.push(before);
+        undoStack.push(HistoryRecord(before, horizontal ? "Flip horizontal" : "Flip vertical"));
         clearRedo();
         return true;
     }
@@ -185,7 +199,7 @@ public:
         Image before = image;
         if (!ImageOperations::brightness(image, adjustment))
             return false;
-        undoStack.push(before);
+        undoStack.push(HistoryRecord(before, "Brightness " + std::to_string(adjustment)));
         clearRedo();
         return true;
     }
@@ -198,7 +212,7 @@ public:
         Image before = image;
         if (!ImageOperations::grayscale(image))
             return false;
-        undoStack.push(before);
+        undoStack.push(HistoryRecord(before, "Grayscale"));
         clearRedo();
         return true;
     }
@@ -334,7 +348,7 @@ public:
 
         const bool success = applyJob(job);
         if (success && changesImage) {
-            undoStack.push(before);
+            undoStack.push(HistoryRecord(before, jobTypeName(job.type)));
             clearRedo();
         }
 
