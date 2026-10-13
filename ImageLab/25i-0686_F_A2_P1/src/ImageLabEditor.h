@@ -267,33 +267,19 @@ public:
     }
 
     bool cancelJob(int id) {
-        if (jobs.isEmptyQueue()) {
-            std::cout << "There are no jobs to cancel.\n";
-            return false;
-        }
-
-        queueType<ProcessingJob> retained(jobs.capacity());
-        bool found = false;
         for (int i = 0; i < jobs.size(); ++i) {
-            const ProcessingJob* current = jobs.peekAt(i);
-            if (current == nullptr)
-                continue;
-
-            if (current->id == id && !found) {
-                found = true;
-                continue;
+            ProcessingJob* current = jobs.peekAt(i);
+            if (current != nullptr && current->id == id && !current->cancelled) {
+                // Keep the job in the circular queue and mark it. It will be
+                // skipped when it reaches the front, without shifting elements.
+                current->cancelled = true;
+                std::cout << "Marked job #" << id << " as cancelled.\n";
+                return true;
             }
-            retained.addQueue(*current);
         }
 
-        if (!found) {
-            std::cout << "No pending job with ID #" << id << ".\n";
-            return false;
-        }
-
-        jobs = retained;
-        std::cout << "Cancelled job #" << id << ".\n";
-        return true;
+        std::cout << "No pending job with ID #" << id << ".\n";
+        return false;
     }
 
     void clearJobs() {
