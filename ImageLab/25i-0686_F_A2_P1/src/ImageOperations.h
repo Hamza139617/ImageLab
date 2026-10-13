@@ -75,16 +75,17 @@ inline bool flip(Image& image, bool horizontal) {
     const int width = image.width();
     const int height = image.height();
 
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width / 2; ++x) {
-            const int otherX = width - 1 - x;
-            Pixel temp = image.at(x, y);
-            image.at(x, y) = image.at(otherX, y);
-            image.at(otherX, y) = temp;
+    if (horizontal) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width / 2; ++x) {
+                const int otherX = width - 1 - x;
+                Pixel temp = image.at(x, y);
+                image.at(x, y) = image.at(otherX, y);
+                image.at(otherX, y) = temp;
+            }
         }
     }
-
-    if (!horizontal) {
+    else {
         for (int y = 0; y < height / 2; ++y) {
             const int otherY = height - 1 - y;
             for (int x = 0; x < width; ++x) {
