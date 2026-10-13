@@ -102,7 +102,7 @@ private:
 
     bool performUndo() {
         if (undoStack.isEmptyStack()) {
-            std::cout << "Nothing to undo.\\n";
+            std::cout << "Nothing to undo.\n";
             return false;
         }
         HistoryRecord record = undoStack.top();
@@ -114,7 +114,7 @@ private:
 
     bool performRedo() {
         if (redoStack.isEmptyStack()) {
-            std::cout << "Nothing to redo.\\n";
+            std::cout << "Nothing to redo.\n";
             return false;
         }
         HistoryRecord record = redoStack.top();
@@ -372,18 +372,18 @@ public:
                       << " (" << image.pixelCount() << " pixels)\n";
 
         std::cout << "Undo stack size: " << undoStack.size() << '\n';
-        std::cout << "Undo snapshots (top first): ";
+        std::cout << "Undo operations (top first): ";
         if (undoStack.isEmptyStack()) std::cout << "(empty)";
         for (int i = 0; i < undoStack.size(); ++i) {
-            const Image* snapshot = undoStack.peekAt(i);
-            if (snapshot) std::cout << snapshot->width() << 'x' << snapshot->height() << ' ';
+            const HistoryRecord* record = undoStack.peekAt(i);
+            if (record) std::cout << record->operationName << ' ';
         }
         std::cout << "\nRedo stack size: " << redoStack.size() << '\n';
-        std::cout << "Redo snapshots (top first): ";
+        std::cout << "Redo operations (top first): ";
         if (redoStack.isEmptyStack()) std::cout << "(empty)";
         for (int i = 0; i < redoStack.size(); ++i) {
-            const Image* snapshot = redoStack.peekAt(i);
-            if (snapshot) std::cout << snapshot->width() << 'x' << snapshot->height() << ' ';
+            const HistoryRecord* record = redoStack.peekAt(i);
+            if (record) std::cout << record->operationName << ' ';
         }
 
         std::cout << "\nProcessing queue size/capacity: "
