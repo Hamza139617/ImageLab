@@ -35,6 +35,7 @@ public:
     int size() const;
     int capacity() const;
 
+    Type* peekAt(int indexFromFront);
     const Type* peekAt(int indexFromFront) const;
     int getAddCount() const;
     int getDeleteCount() const;
@@ -184,6 +185,15 @@ template <class Type>
 int queueType<Type>::capacity() const
 {
     return maxQueueSize;
+}
+
+template <class Type>
+Type* queueType<Type>::peekAt(int indexFromFront)
+{
+    if (indexFromFront < 0 || indexFromFront >= count)
+        return nullptr;
+
+    return &arr[(frontIndex + indexFromFront) % maxQueueSize];
 }
 
 template <class Type>
