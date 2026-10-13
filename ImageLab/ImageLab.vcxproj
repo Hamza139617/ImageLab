@@ -139,6 +139,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="25i-0686_F_A2_P1\src\Image.h" />
     <ClInclude Include="25i-0686_F_A2_P1\src\priorityQueueType.h" />
     <ClInclude Include="25i-0686_F_A2_P1\src\queueType.h" />
     <ClInclude Include="25i-0686_F_A2_P1\src\stackType.h" />

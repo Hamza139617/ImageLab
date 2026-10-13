@@ -24,6 +24,9 @@
     <ClInclude Include="25i-0686_F_A2_P1\src\priorityQueueType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="25i-0686_F_A2_P1\src\Image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="25i-0686_F_A2_P1\src\Source.cpp">
