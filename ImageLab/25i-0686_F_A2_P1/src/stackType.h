@@ -5,15 +5,18 @@
 using namespace std;
 
 template <class Type>
+struct Node {
+	Type data;
+	Node* next;
+};
+
+template <class Type>
 class stackType {
 private:
 
-	struct Node {
-		Type data;
-		Node* next;
-	};
 
-	Node* head;
+
+	Node<Type>* head;
 	int count;
 	int pushCount;
 	int popCount;
@@ -57,6 +60,8 @@ template <typename Type>
 stackType<Type>::stackType(const stackType<Type>& oStack) {
 	head = nullptr;
 	count = 0;
+	pushCount = 0;
+	popCount = 0;
 	copyStack(oStack);
 }
 
@@ -75,8 +80,8 @@ const stackType<Type>& stackType<Type>::operator=(const stackType<Type>& oStack)
 
 template <class Type>
 void stackType<Type>::destroyStack() {
-	while (!head) {
-		nodeType* temp = head;
+	while (head != nullptr) {
+		Node<Type>* temp = head;
 		head = head->next;
 		delete temp;
 	}
@@ -89,11 +94,11 @@ template <class Type>
 void stackType<Type>::copyStack(const stackType<Type>& oStack) {
 	destroyStack();
 
-	Node* current = oStack.head;
-	Node* last = nullptr;
+	Node<Type>* current = oStack.head;
+	Node<Type>* last = nullptr;
 
-	while (!current) {
-		Node* temp = new Node();
+	while (current != nullptr) {
+		Node<Type>* temp = new Node<Type>();
 		temp->data = current->data;
 		temp->next = nullptr;
 
@@ -129,8 +134,8 @@ bool stackType<Type>::isFullStack() const {
 
 template <typename Type>
 void stackType<Type>::push(const Type& item) {
-	Node* temp = new Node();
-	temp->data = item->data;
+	Node<Type>* temp = new Node<Type>();
+	temp->data = item;
 	temp->next = head;
 	head = temp;
 	count++;
@@ -142,7 +147,7 @@ Type stackType<Type>::top() const {
 
 	if (isEmptyStack()) {
 		cout << endl << "The stack is empty " << endl;
-		return nullptr;
+		return Type{}; // create a defut value and return thatr 
 	}
 
 	return head->data;
@@ -152,10 +157,10 @@ template <typename Type>
 void stackType<Type>::pop() {
 	if (isEmptyStack()) {
 		cout << endl << "stack is empty" << endl;
-		return nullptr;
+		return ;
 	}
 
-	Node* temp = head;
+	Node<Type>* temp = head;
 	head = head->next;
 	delete temp;
 	count--;
@@ -170,11 +175,11 @@ int stackType<Type>::size() const {
 template <class Type>
 const Type* stackType<Type>::peekAt(int topIndex) const {
 
-	if (indexTop < 0 || indexTop >= count) return nullptr;
+	if ( topIndex < 0 || topIndex >= count ) return nullptr;
 
-	Node* current = head;
+	Node<Type>* current = head;
 
-	for (int i = 0; i < indexTop; i++)
+	for (int i = 0; i < topIndex; i++)
 		current = current->next;
 
 	return &(current->data);

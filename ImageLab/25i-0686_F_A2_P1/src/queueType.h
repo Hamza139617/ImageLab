@@ -91,8 +91,8 @@ void queueType<Type>::copyQueue(const queueType<Type>& otherQueue)
 
     arr = new Type[maxQueueSize];
 
-    for (int i = 0; i < count; i++)
-        arr[i] = otherQueue.arr[(otherQueue.frontIndex + i) % maxQueueSize];
+    for (int i = 0; i < count; i++) 
+        arr[i] = otherQueue.arr[(otherQueue.frontIndex + i) % maxQueueSize]; // for makng sure that the index is a valid indx
 
     frontIndex = 0;
     rearIndex = (count + maxQueueSize - 1) % maxQueueSize;
@@ -101,6 +101,8 @@ void queueType<Type>::copyQueue(const queueType<Type>& otherQueue)
 template <class Type>
 void queueType<Type>::initializeQueue()
 {
+    delete[] arr;
+    arr = nullptr;
     frontIndex = 0;
     rearIndex = maxQueueSize - 1;
     count = 0;
