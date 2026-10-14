@@ -1,19 +1,40 @@
-#include "queueType.h"
-#include "stackType.h"
 
-int main() {
+#include "ImageOperations.h"
+#include <iostream>
 
-	stackType<int> stack(20);
-	queueType<int> queue(20);
+using namespace std;
 
-	queue.addQueue(1);
-	queue.addQueue(2);
-	queue.addQueue(3);
-	
-	queue.deleteQueue();
+int main()
+{
+    Image original;
+    Image result;
 
-	cout << queue.front();
+    if (!original.load("25i-0686_F_A2_P1/images/input.png"))
+    {
+        cout << "Image loading failed." << endl;
+        return 1;
+    }
 
+    cout << "Width: " << original.width() << endl;
+    cout << "Height: " << original.height() << endl;
 
-	return 0;
+    if (ImageOperations::grayscale(original, result))
+    {
+        if (result.save("25i-0686_F_A2_P1/images/grayscale.png"))
+        {
+            cout << "Grayscale image saved." << endl;
+        }
+    }
+
+    if (ImageOperations::rotate(original, 90, result))
+    {
+        result.save("25i-0686_F_A2_P1/images/rotate.png");
+    }
+
+    if (ImageOperations::resize(original, 200, 200, result))
+    {
+        result.save("25i-0686_F_A2_P1/images/resize.png");
+    }
+
+    return 0;
 }
