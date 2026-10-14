@@ -139,6 +139,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="25i-0686_F_A2_P1\src\EditCommand.h" />
     <ClInclude Include="25i-0686_F_A2_P1\src\Image.h" />
     <ClInclude Include="25i-0686_F_A2_P1\src\ImageOperations.h" />
     <ClInclude Include="25i-0686_F_A2_P1\src\priorityQueueType.h" />

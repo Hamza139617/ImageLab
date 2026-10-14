@@ -9,7 +9,7 @@ class ImageOperations
 private:
     static bool sameColor(const Pixel& p1, const Pixel& p2)
     {
-        return p1.r == p2.r &&
+        return p1.r == p2.r && // basically for checking if two Pixels have the same color
             p1.g == p2.g &&
             p1.b == p2.b &&
             p1.a == p2.a;
@@ -65,7 +65,7 @@ public:
         for (int row = 0; row < cropHeight; row++)
         {
             for (int col = 0; col < cropWidth; col++)
-            {
+            {           // copying the cropped part
                 result.at(col, row) =
                     source.at(x + col, y + row);
             }
