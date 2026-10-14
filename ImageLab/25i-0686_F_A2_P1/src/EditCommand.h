@@ -14,6 +14,8 @@ public:
 	int param4;
 	Pixel color;
 	Image previousImage;
+	string fileName;          
+	string previousFileName;  
 
 	EditCommand() {
 		operationName = "";

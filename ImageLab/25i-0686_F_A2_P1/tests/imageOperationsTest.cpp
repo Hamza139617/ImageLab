@@ -1,5 +1,5 @@
 
-#include "ImageOperations.h"
+#include "../src/ImageOperations.h"
 #include <iostream>
 
 using namespace std;
