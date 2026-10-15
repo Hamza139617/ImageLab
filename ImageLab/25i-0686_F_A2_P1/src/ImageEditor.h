@@ -56,7 +56,12 @@ private:
 			return ImageOperations::blur(source, cmd.param1, output);
 		if (cmd.operationName == "bucketFill") {
 			Image filled = source;
-			if (!ImageOperations::bucketFill(filled, cmd.param1, cmd.param2, cmd.color)) return false;
+			bool done;
+			if (cmd.param3 == 2)
+				done = ImageOperations::bucketFillQueue(filled, cmd.param1, cmd.param2, cmd.color);
+			else
+				done = ImageOperations::bucketFillStack(filled, cmd.param1, cmd.param2, cmd.color);
+			if (!done) return false;
 			output = filled;
 			return true;
 		}
@@ -359,17 +364,36 @@ public:
 						break;
 					}
 
-					Image latest = currImage;   // bucket fill changes the image it receives, so work on a copy
+					//Image latest = currImage;   // bucket fill changes the image it receives, so work on a copy
+					//Pixel color((unsigned char)red, (unsigned char)green, (unsigned char)blue);
+					//bool result = ImageOperations::bucketFill(latest, x, y, color);
+
+					int mode;
+					cout << endl << "pressing 1 for stack based fill or 2 for queue based fill ";
+					cin >> mode;
+
+					if (mode != 1 && mode != 2) {
+						cout << endl << "Invalid fill type" << endl;
+						break;
+					}
+
+					Image latest = currImage;
 					Pixel color((unsigned char)red, (unsigned char)green, (unsigned char)blue);
-					bool result = ImageOperations::bucketFill(latest, x, y, color);
+
+					bool result;
+					if (mode == 1)
+						result = ImageOperations::bucketFillStack(latest, x, y, color);
+					else
+						result = ImageOperations::bucketFillQueue(latest, x, y, color);
 
 					if (result) {
 						cout << endl << "bucket fill applied successfully ";
 						EditCommand cmd;
-						cmd.description = "bucket fill";
+						cmd.description = (mode == 1) ?  "bucket fill (stack)" : "bucket fill (queue)";
 						cmd.operationName = "bucketFill";
 						cmd.param1 = x;
 						cmd.param2 = y;
+						cmd.param3 = mode; // also for storing the type of mode information which is going to be used for the undo
 						cmd.color = color;
 						recordEdit(cmd, latest);
 					}

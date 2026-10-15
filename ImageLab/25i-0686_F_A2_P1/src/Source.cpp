@@ -39,7 +39,9 @@ int main()
 
     imageEditor editor;
 
+
     editor.showMenu();
+
 
     return 0;
 }

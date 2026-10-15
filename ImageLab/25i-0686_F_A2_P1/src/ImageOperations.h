@@ -3,6 +3,8 @@
 #define IMAGE_OPERATIONS_H
 
 #include "Image.h"
+#include "stackType.h"
+#include "queueType.h"
 
 class ImageOperations
 {
@@ -406,9 +408,7 @@ public:
         return !output.isEmpty();
     }
 
-    // 9. BUCKET FILL USING AN ARRAY-BASED STACK
-    // Replaces the connected region matching the starting pixel.
-    static bool bucketFill(
+    static bool bucketFillStack(   // this is the stack version
         Image& image,
         int startX,
         int startY,
@@ -428,23 +428,18 @@ public:
             return true;
         }
 
-        long long total = image.pixelCount();
+        stackType<int> stack;   
 
-        int* stack = new int[total];
-
-        long long top = 0;
-
-        stack[top] = startY * image.width() + startX;
-        top++;
+        stack.push(startY * image.width() + startX);   
 
         // Mark when pushed, so a pixel is pushed only once.
         image.at(startX, startY) = replacement;
 
-        while (top > 0)
+        while (!stack.isEmptyStack())   
         {
-            top--;
+            int index = stack.top();    
+            stack.pop();                
 
-            int index = stack[top];
             int x = index % image.width();
             int y = index / image.width();
 
@@ -453,8 +448,7 @@ public:
                 sameColor(image.at(x - 1, y), target))
             {
                 image.at(x - 1, y) = replacement;
-                stack[top] = y * image.width() + x - 1;
-                top++;
+                stack.push(y * image.width() + x - 1);   
             }
 
             // Right neighbor
@@ -462,8 +456,7 @@ public:
                 sameColor(image.at(x + 1, y), target))
             {
                 image.at(x + 1, y) = replacement;
-                stack[top] = y * image.width() + x + 1;
-                top++;
+                stack.push(y * image.width() + x + 1);   
             }
 
             // Upper neighbor
@@ -471,8 +464,7 @@ public:
                 sameColor(image.at(x, y - 1), target))
             {
                 image.at(x, y - 1) = replacement;
-                stack[top] = (y - 1) * image.width() + x;
-                top++;
+                stack.push((y - 1) * image.width() + x);   
             }
 
             // Lower neighbor
@@ -480,14 +472,90 @@ public:
                 sameColor(image.at(x, y + 1), target))
             {
                 image.at(x, y + 1) = replacement;
-                stack[top] = (y + 1) * image.width() + x;
-                top++;
+                stack.push((y + 1) * image.width() + x);  
+                // cout << "quick check" << endl;
             }
         }
 
-        delete[] stack;
+
+
+        return true;   
+    }
+
+    //  que version, same logic as the stack version
+    static bool bucketFillQueue(
+        Image& image,
+        int startX,
+        int startY,
+        const Pixel& replacement)
+    {
+        if (image.isEmpty() ||
+            startX < 0 || startX >= image.width() ||
+            startY < 0 || startY >= image.height())
+        {
+            return false;
+        }
+
+        Pixel target = image.at(startX, startY);
+
+        if (sameColor(target, replacement))
+        {
+            return true;
+        }
+
+        // A pixel is added only once, so the number of pixels is enough capacity.
+        queueType<int> pixelQueue((int)image.pixelCount());
+
+        pixelQueue.addQueue(startY * image.width() + startX);
+
+        // Mark when added, so a pixel is added only once.
+        image.at(startX, startY) = replacement;
+
+        while (!pixelQueue.isEmptyQueue())
+        {
+            int index = pixelQueue.front();
+            pixelQueue.deleteQueue();
+
+            int x = index % image.width();
+            int y = index / image.width();
+
+            // Left neighbor
+            if (x > 0 &&
+                sameColor(image.at(x - 1, y), target))
+            {
+                image.at(x - 1, y) = replacement;
+                pixelQueue.addQueue(y * image.width() + x - 1);
+            }
+
+            // Right neighbor
+            if (x < image.width() - 1 &&
+                sameColor(image.at(x + 1, y), target))
+            {
+                image.at(x + 1, y) = replacement;
+                pixelQueue.addQueue(y * image.width() + x + 1);
+            }
+
+            // Upper neighbor
+            if (y > 0 &&
+                sameColor(image.at(x, y - 1), target))
+            {
+                image.at(x, y - 1) = replacement;
+                pixelQueue.addQueue((y - 1) * image.width() + x);
+            }
+
+            // Lower neighbor
+            if (y < image.height() - 1 &&
+                sameColor(image.at(x, y + 1), target))
+            {
+                image.at(x, y + 1) = replacement;
+                pixelQueue.addQueue((y + 1) * image.width() + x);
+            }
+        }
+
         return true;
     }
+
+
 };
 
 #endif

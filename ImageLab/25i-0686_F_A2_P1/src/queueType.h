@@ -101,8 +101,8 @@ void queueType<Type>::copyQueue(const queueType<Type>& otherQueue)
 template <class Type>
 void queueType<Type>::initializeQueue()
 {
-    delete[] arr;
-    arr = nullptr;
+    //delete[] arr;
+    //arr = nullptr;
     frontIndex = 0;
     rearIndex = maxQueueSize - 1;
     count = 0;
