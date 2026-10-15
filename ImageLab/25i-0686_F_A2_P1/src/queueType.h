@@ -36,6 +36,7 @@ public:
     int capacity() const;
 
     const Type* peekAt(int indexFromFront) const;
+    Type* getAt(int indexFromFront);
     int getAddCount() const;
     int getDeleteCount() const;
     int getMaxRecordedSize() const;
