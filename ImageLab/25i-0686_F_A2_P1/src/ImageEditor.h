@@ -7,6 +7,7 @@
 #include "ImageOperations.h"
 #include "queueType.h"
 #include "stackType.h"
+#include "Job.h"
 
 #include <iostream>
 using namespace std;
@@ -20,6 +21,8 @@ private:
 	bool editorOpened;
 	bool imageLoaded;
 	int option;
+	queueType<Job> jobQueue;
+	int nextJobId;
 
 	// repeadet steps so mad it a function
 	void recordEdit(EditCommand& cmd, Image& latest) {
@@ -69,12 +72,159 @@ private:
 		return false;
 	}
 
+	void performUndo() {
+
+		if (undoStack.isEmptyStack()) {
+			cout << endl << "Nothing to undo" << endl;
+		}
+		else {
+			EditCommand cmd = undoStack.top();
+			undoStack.pop();
+
+			currImage = cmd.previousImage;
+			if (cmd.operationName == "load")
+				prevImgName = cmd.previousFileName;
+
+			redoStack.push(cmd);
+			cout << endl << "Undone : " << cmd.description << endl;
+		}
+	}
+
+	//  redo one step (used by the menu and by a redo job)
+	void performRedo() {
+
+		if (redoStack.isEmptyStack()) {
+			cout << endl << "Nothing to redo" << endl;
+		}
+		else {
+			EditCommand cmd = redoStack.top();
+			Image result;
+
+			// currImage is the same as cmd.previousImage here, so the operation is applied again
+			if (applyCommand(cmd, currImage, result)) {
+				redoStack.pop();
+
+				currImage = result;
+				if (cmd.operationName == "load")
+					prevImgName = cmd.fileName;
+
+				undoStack.push(cmd);
+				cout << endl << "Redone : " << cmd.description << endl;
+			}
+			else {
+				cout << endl << "Redo failed" << endl;
+			}
+		}
+	}
+
+	//  puts a job at the rear of the queue, a filled queue is going to be rejecting the job
+	bool addJob(Job& job) {
+
+		if (jobQueue.isFullQueue()) {
+			cout << endl << "Job queue is full, process the pending jobs first" << endl;
+			return false;
+		}
+
+		job.jobId = nextJobId;
+		nextJobId++;
+		jobQueue.addQueue(job);
+
+		cout << endl << "Job #" << job.jobId << " added : " << job.description << endl;
+		return true;
+	}
+
+	//  true boolean value iff if at least one job in the queue is not cancelled
+	bool hasPendingJobs() {
+
+		for (int i = 0; i < jobQueue.size(); i++) {
+			if (!jobQueue.getAt(i)->cancelled)
+				return true;
+		}
+
+		return false;
+	}
+
+	//  runs one job, an edit is recorded in the undo stack here (when it is executed, not when it is added)
+	void executeJob(const Job& job) {
+
+		cout << endl << "Processing job #" << job.jobId << " : " << job.description << endl;
+
+		if (job.operationName == "undo") {
+			performUndo();
+			return;
+		}
+
+		if (job.operationName == "redo") {
+			performRedo();
+			return;
+		}
+
+		if (job.operationName == "save") {
+			// saves into the file that is currently loaded (the project's working file)
+			if (currImage.save(prevImgName))
+				cout << "Job #" << job.jobId << " finished : image saved" << endl;
+			else
+				cout << "Job #" << job.jobId << " failed : image save failed" << endl;	// the job # is going to be showing the job id for debugging purpose s
+			return;
+		}
+
+		if (job.operationName == "export") {
+			if (currImage.save(job.fileName))
+				cout << "Job #" << job.jobId << " finished : image exported" << endl;
+			else
+				cout << "Job #" << job.jobId << " failed : image export failed" << endl;
+			return;
+		}
+
+		// resize, blur and bucket fill change the image
+		EditCommand cmd;
+		cmd.operationName = job.operationName;
+		cmd.description = job.description;
+		cmd.param1 = job.param1;
+		cmd.param2 = job.param2;
+		cmd.param3 = job.param3;
+		cmd.param4 = job.param4;
+		cmd.color = job.color;
+
+		Image latest;
+
+		if (applyCommand(cmd, currImage, latest)) {
+			recordEdit(cmd, latest);
+			cout << "Job #" << job.jobId << " finished" << endl;
+		}
+		else {
+			cout << "Job #" << job.jobId << " failed : invalid parameters for the current image" << endl;
+		}
+	}
+
+	//  taking the job at the front and runs it, cancelled jobs are skipped
+	bool processNextJob() {
+
+		while (!jobQueue.isEmptyQueue()) {
+
+			Job job = jobQueue.front();
+			jobQueue.deleteQueue();
+
+			if (job.cancelled) {
+				cout << endl << "Skipped cancelled job #" << job.jobId << endl;
+				continue;
+			}
+
+			executeJob(job);
+			return true;
+		}
+
+		cout << endl << "No pending jobs" << endl;
+		return false;
+	}
+
 public:
 
-	imageEditor() {
+	imageEditor(int jobQueueSize = 10) : jobQueue(jobQueueSize) {   //  the queue capacity can be set
 		editorOpened = true;
 		imageLoaded = false;
 		option = -1;
+		nextJobId = 1;   // ADDED
 
 	}
 
@@ -92,6 +242,8 @@ public:
 			cout << "1. Load Image.(Instant)\n2. Crop Image. (Instant)\n3. Rotate Image. (Instant)\n4. Flip Image.(Instant)\n5. Change Brightness.(Instant)\n";
 			cout << "6. Apply Grayscale.(Instant)\n7. Resize Image.(Queued)\n8. Blur Image. (Queued)\n9. Bucket Fill (Queued)\n10. Save Image (Queued).\n11. Export Image. (Queued)\n12. Exit. (Instant)\n";
 			cout << "13. Undo. (Instant)\n14. Redo. (Instant)\n";   
+			cout << "15. List Pending Jobs.\n 16. Process Next Job.\n 17. Process all jobs. \n 18. Canel Job. \n 19 Clear All Jobs. \n 20. Set Job Queue Capacity. \n";
+			cout << "21. Data Structure Inspector .\n";
 
 			//  if a non-number is typed, clear the error, otherwise the loop never stops
 			if (!(cin >> option)) {
@@ -291,27 +443,19 @@ public:
 
 			case 7: {
 
-				
 				if (imageLoaded) {
 
 					int newWidth, newHeight;
 					cout << endl << "Enter new width and new height ";
 					cin >> newWidth >> newHeight;
-					Image latest;
-					bool result = ImageOperations::resize(currImage, newWidth, newHeight, latest);
 
-					if (result) {
-						cout << endl << "image resized successfully ";
-						EditCommand cmd;
-						cmd.description = "resized image";
-						cmd.operationName = "resize";
-						cmd.param1 = newWidth;
-						cmd.param2 = newHeight;
-						recordEdit(cmd, latest);
-					}
-					else {
-						cout << endl << "Invalid size" << endl;
-					}
+					//  the resize is added as a job, it rns when the job is processed
+					Job job;
+					job.operationName = "resize";
+					job.param1 = newWidth;
+					job.param2 = newHeight;
+					job.description = "resize (" + to_string(newWidth) + " x " + to_string(newHeight) + ")";
+					addJob(job);
 
 				}
 				else {
@@ -322,26 +466,18 @@ public:
 
 			case 8: {
 
-				
 				if (imageLoaded) {
 
 					int radius;
 					cout << endl << "Enter blur radius ";
 					cin >> radius;
-					Image latest;
-					bool result = ImageOperations::blur(currImage, radius, latest);
 
-					if (result) {
-						cout << endl << "image blurred successfully ";
-						EditCommand cmd;
-						cmd.description = "blurred image";
-						cmd.operationName = "blur";
-						cmd.param1 = radius;
-						recordEdit(cmd, latest);
-					}
-					else {
-						cout << endl << "Invalid radius" << endl;
-					}
+					//  added it as a job
+					Job job;
+					job.operationName = "blur";
+					job.param1 = radius;
+					job.description = "blur (radius " + to_string(radius) + ")";
+					addJob(job);
 
 				}
 				else {
@@ -352,7 +488,6 @@ public:
 
 			case 9: {
 
-			
 				if (imageLoaded) {
 
 					int x, y, red, green, blue;
@@ -364,12 +499,8 @@ public:
 						break;
 					}
 
-					//Image latest = currImage;   // bucket fill changes the image it receives, so work on a copy
-					//Pixel color((unsigned char)red, (unsigned char)green, (unsigned char)blue);
-					//bool result = ImageOperations::bucketFill(latest, x, y, color);
-
 					int mode;
-					cout << endl << "pressing 1 for stack based fill or 2 for queue based fill ";
+					cout << endl << "Enter 1 for stack based fill or 2 for queue based fill ";
 					cin >> mode;
 
 					if (mode != 1 && mode != 2) {
@@ -377,29 +508,15 @@ public:
 						break;
 					}
 
-					Image latest = currImage;
-					Pixel color((unsigned char)red, (unsigned char)green, (unsigned char)blue);
-
-					bool result;
-					if (mode == 1)
-						result = ImageOperations::bucketFillStack(latest, x, y, color);
-					else
-						result = ImageOperations::bucketFillQueue(latest, x, y, color);
-
-					if (result) {
-						cout << endl << "bucket fill applied successfully ";
-						EditCommand cmd;
-						cmd.description = (mode == 1) ?  "bucket fill (stack)" : "bucket fill (queue)";
-						cmd.operationName = "bucketFill";
-						cmd.param1 = x;
-						cmd.param2 = y;
-						cmd.param3 = mode; // also for storing the type of mode information which is going to be used for the undo
-						cmd.color = color;
-						recordEdit(cmd, latest);
-					}
-					else {
-						cout << endl << "Invalid starting pixel" << endl;
-					}
+					// added it as a job
+					Job job;
+					job.operationName = "bucketFill";
+					job.param1 = x;
+					job.param2 = y;
+					job.param3 = mode;
+					job.color = Pixel((unsigned char)red, (unsigned char)green, (unsigned char)blue);
+					job.description = string("bucket fill (") + (mode == 1 ? "stack" : "queue") + ") at (" + to_string(x) + "," + to_string(y) + ")";
+					addJob(job);
 
 				}
 				else {
@@ -410,16 +527,13 @@ public:
 
 			case 10: {
 
-				
 				if (imageLoaded) {
 
-					// saves into the file that is currently loaded (the project's working file)
-					if (currImage.save(prevImgName)) {
-						cout << endl << "Image saved successfully" << endl;
-					}
-					else {
-						cout << endl << "Image save failed" << endl;
-					}
+					//  added as a job, the image is saved when the job is processed
+					Job job;
+					job.operationName = "save";
+					job.description = "save image";
+					addJob(job);
 
 				}
 				else {
@@ -430,19 +544,19 @@ public:
 
 			case 11: {
 
-			
 				if (imageLoaded) {
 
 					string exportName;
 					cout << endl << "Enter new file name (.png or .jpg) ";
 					cin >> exportName;
 
-					if (currImage.save(exportName)) {
-						cout << endl << "Image exported successfully" << endl;
-					}
-					else {
-						cout << endl << "Image export failed" << endl;
-					}
+					//  added as a job
+					// the queued ones were added as a job because it will help us in differentiation of the pending ones and processed ones and queed ones
+					Job job;
+					job.operationName = "export";
+					job.fileName = exportName;
+					job.description = "export to " + exportName;
+					addJob(job);
 
 				}
 				else {
@@ -457,23 +571,19 @@ public:
 			}
 				   break;
 
-			case 13: {   // undo part when selected then it will undo
+			case 13: {   // undo
 
 				if (imageLoaded) {
 
-					if (undoStack.isEmptyStack()) {
-						cout << endl << "Nothing to undo" << endl;
+					//  with pending jobs the undo request waits in the queue
+					if (hasPendingJobs()) {
+						Job job;
+						job.operationName = "undo";
+						job.description = "undo request";
+						addJob(job);
 					}
 					else {
-						EditCommand cmd = undoStack.top();
-						undoStack.pop();
-
-						currImage = cmd.previousImage;        
-						if (cmd.operationName == "load")
-							prevImgName = cmd.previousFileName;
-
-						redoStack.push(cmd);
-						cout << endl << "Undone : " << cmd.description << endl;
+						performUndo();
 					}
 
 				}
@@ -483,37 +593,160 @@ public:
 			}
 				   break;
 
-			case 14: {   
+			case 14: {   // redo
 
 				if (imageLoaded) {
 
-					if (redoStack.isEmptyStack()) {
-						cout << endl << "Nothing to redo" << endl;
+					//  with pending jobs the redo request waits in the queue
+					if (hasPendingJobs()) {
+						Job job;
+						job.operationName = "redo";
+						job.description = "redo request";
+						addJob(job);
 					}
 					else {
-						EditCommand cmd = redoStack.top();
-						Image result;
-
-						// currImage is the same as cmd.previousImage here, so the operation is applied again
-						if (applyCommand(cmd, currImage, result)) {
-							redoStack.pop();
-
-							currImage = result;
-							if (cmd.operationName == "load")
-								prevImgName = cmd.fileName;
-
-							undoStack.push(cmd);
-							cout << endl << "Redone : " << cmd.description << endl;
-						}
-						else {
-							cout << endl << "Redo failed" << endl;
-						}
+						performRedo();
 					}
 
 				}
 				else {
 					cout << endl << "Load an image first" << endl;
 				}
+			}
+				   break;
+
+			case 15: {   // list the pending jobs without removing them
+
+				if (jobQueue.isEmptyQueue()) {
+					cout << endl << "No pending jobs" << endl;
+				}
+				else {
+					cout << endl << "Pending jobs (front to rear) :" << endl;
+
+					for (int i = 0; i < jobQueue.size(); i++) {
+						const Job* job = jobQueue.peekAt(i);
+
+						cout << i + 1 << ". Job #" << job->jobId << " : " << job->description;
+						if (job->cancelled)
+							cout << " (cancelled)";
+						cout << endl;
+					}
+				}
+			}
+				   break;
+
+			case 16: {   // process the next job
+
+				processNextJob();
+			}
+				   break;
+
+			case 17: {   // process all pending jobs
+
+				if (jobQueue.isEmptyQueue()) {
+					cout << endl << "No pending jobs" << endl;
+				}
+				else {
+					while (!jobQueue.isEmptyQueue())
+						processNextJob();
+
+					cout << endl << "All pending jobs processed" << endl;
+				}
+			}
+				   break;
+
+			case 18: {   // cancl a job, it is only marked, the queue is not shifted
+
+				int id;
+				cout << endl << "Enter the id of the job to cancel ";
+				cin >> id;
+
+				bool found = false;
+
+				for (int i = 0; i < jobQueue.size() && !found; i++) {
+					Job* job = jobQueue.getAt(i);
+
+					if (job->jobId == id) {
+						found = true;
+
+						if (job->cancelled) {
+							cout << endl << "Job #" << id << " is already cancelled" << endl;
+						}
+						else {
+							job->cancelled = true;
+							cout << endl << "Job #" << id << " cancelled" << endl;
+						}
+					}
+				}
+
+				if (!found)
+					cout << endl << "No pending job with that id" << endl;
+			}
+				   break;
+
+			case 19: {   // for cleareance of al the pending jobs
+
+				int removed = jobQueue.size();
+				jobQueue.initializeQueue();
+				cout << endl << "All pending jobs cleared (" << removed << " removed)" << endl;
+			}
+				   break;
+
+			case 20: {   //  change the queue capacity, only possible when the queue is empty
+
+				if (!jobQueue.isEmptyQueue()) {
+					cout << endl << "Cannot change capacity while jobs are pending" << endl;
+				}
+				else {
+					int newSize;
+					cout << endl << "Enter the new job queue capacity ";
+					cin >> newSize;
+
+					if (newSize < 1 || newSize > 100000) {
+						cout << endl << "Invalid capacity" << endl;
+					}
+					else {
+						jobQueue = queueType<Job>(newSize);
+						cout << endl << "Job queue capacity set to " << newSize << endl;
+					}
+				}
+			}
+				   break;
+
+			case 21: {
+				
+				cout << "Undo stack size : " << undoStack.size() << endl;
+				cout << "Redo stack size : " << redoStack.size() << endl;
+				cout << "Current queue size : " << jobQueue.capacity() << endl;
+				cout << "Max recorded queue size : " << jobQueue.getMaxRecordedSize() << endl;
+				cout << "Undo stack push count : " << undoStack.getPushCount() << endl;
+				cout << "Undo stack pop count : " << undoStack.getPopCount() << endl;
+				cout << "Redo stack push count : " << redoStack.getPushCount() << endl;
+				cout << "Redo stack pop count : " << redoStack.getPopCount() << endl;
+				cout << "Queue addQueue count : " << jobQueue.getAddCount() << endl;
+				cout << "Queue deleteQueue count : " << jobQueue.getDeleteCount() << endl;
+				cout << "Undo stack content : \n";
+
+				// now for the turn of undo stack contents
+				for (int i = 0; i < undoStack.size(); i++) {
+					const EditCommand* temp = undoStack.peekAt(i);
+					cout << "Operation Name : " << temp->operationName << endl;
+				}
+
+				cout << "Redo stack content : \n ";
+
+				for (int i = 0; i < redoStack.size(); i++) {
+					const EditCommand* temp = redoStack.peekAt(i);
+					cout << "Operation Name : " << temp->operationName << endl;
+				}
+
+				cout << "Job queue content : " << endl;
+
+				for (int i = 0; i < jobQueue.size(); i++) {
+					 Job* temp = jobQueue.getAt(i);
+					 cout << "Operation Name : " << temp->operationName << endl;
+				}
+
 			}
 				   break;
 

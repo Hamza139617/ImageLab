@@ -196,6 +196,17 @@ const Type* queueType<Type>::peekAt(int indexFromFront) const
     return &arr[(frontIndex + indexFromFront) % maxQueueSize];
 }
 
+// basically getting an element from an array but also checking it is valid
+
+template <class Type>
+Type* queueType<Type>::getAt(int indexFromFront)   
+{
+    if (indexFromFront < 0 || indexFromFront >= count)
+        return nullptr;
+
+    return &arr[(frontIndex + indexFromFront) % maxQueueSize];
+}
+
 template <class Type>
 int queueType<Type>::getAddCount() const
 {

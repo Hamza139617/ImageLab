@@ -32,6 +32,8 @@ int main()
     //    result.save("25i-0686_F_A2_P1/images/rotate.png");
     //}
 
+    
+
     //if (ImageOperations::resize(original, 200, 200, result))
     //{
     //    result.save("25i-0686_F_A2_P1/images/resize.png");
